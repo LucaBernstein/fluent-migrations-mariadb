@@ -5,6 +5,7 @@ import { EventEmitter } from 'events';
 export enum emitType {
     DEBUG = 'debug',
     TRACE = 'trace',
+    ALL = '*'
 }
 
 export class SqlScript { // TODO: implements Promise<any>
@@ -70,8 +71,16 @@ export class SqlScript { // TODO: implements Promise<any>
         return this.defaultEmitter;
     }
 
-    attachLogger(t: emitType, cb: any) {
-        this.defaultEmitter.on(t, cb);
+    attachLogger(t: emitType, cb: any): SqlScript {
+        if (t === emitType.ALL) {
+            for (const key in emitType) {
+                // TODO: Test case
+                this.defaultEmitter.on(key, cb);
+            }
+        } else {
+            this.defaultEmitter.on(t, cb);
+        }
+        return this;
     }
 
     useDatabase(db: Database): SqlScript {
@@ -83,7 +92,7 @@ export class SqlScript { // TODO: implements Promise<any>
         return this;
     }
 
-    createTable(table: Table) {
+    createTable(table: Table): SqlScript {
         this.addRawSql(table.sqlify(this.dbToUse!.name));
         return this;
     }
