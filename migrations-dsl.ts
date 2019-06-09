@@ -3,6 +3,7 @@ import { Connection, ConnectionConfig, createConnection } from 'mariadb';
 import { EventEmitter } from 'events';
 
 export enum emitType {
+    // Make lists to attach always log levels UP TO selected one: dynamically and recursively build.
     DEBUG = 'debug',
     TRACE = 'trace',
     ALL = '*',

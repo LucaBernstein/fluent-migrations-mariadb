@@ -12,12 +12,15 @@ This module makes it also simple for you to handle database installations. The f
 
 ```javascript
 // 000.initial-db-setup.ts
+import { SqlScript, Database, Table, TableColumnChar, TableColumnCustom, emitType } from 'migrations-fluent-mariadb';
 import { ConnectionConfig, MariaDbError } from 'mariadb';
+import { LOGGER } from '../../logger';
 
 const conf: ConnectionConfig;
 const VERSION: number = 0;
 
 return new SqlScript(conf, VERSION)
+    .attachLogger(emitType.ALL, LOGGER.debug) // Plug in your own logger callback
     .useDatabase(
         new Database('sample-database'),
     )
@@ -57,12 +60,6 @@ return new SqlScript(conf, VERSION)
 ### Sample: Database migrations
 
 `TODO: Create an example for this passage.`
-
-### Plug in your own logger
-
-```javascript
-
-```
 
 # Maintaining this module
 
