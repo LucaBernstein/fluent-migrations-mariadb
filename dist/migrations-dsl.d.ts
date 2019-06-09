@@ -1,6 +1,7 @@
 /// <reference types="node" />
-import { Connection, ConnectionConfig } from 'mariadb';
+import { Connection, ConnectionConfig, MariaDbError } from 'mariadb';
 import { EventEmitter } from 'events';
+export { MariaDbError, ConnectionConfig };
 export declare enum emitType {
     DEBUG = "debug",
     TRACE = "trace",
@@ -18,7 +19,7 @@ export declare class SqlScript {
     isDatabaseExistent(connection: Promise<Connection>, dbName: string): Promise<boolean>;
     getDbSchemaVersion(connection: Promise<Connection>, dbName: string): Promise<number>;
     getDefaultEmitter(): EventEmitter;
-    attachLogger(t: emitType, cb: any): SqlScript;
+    attachLogger(t: emitType, cb: (...args: any[]) => void): SqlScript;
     useDatabase(db: Database): SqlScript;
     createTable(table: Table): SqlScript;
     addRawSql(sql: string): SqlScript;

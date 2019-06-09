@@ -1,12 +1,15 @@
 import { isNullOrUndefined, isNull } from 'util';
-import { Connection, ConnectionConfig, createConnection } from 'mariadb';
+import { Connection, ConnectionConfig, createConnection, MariaDbError } from 'mariadb';
 import { EventEmitter } from 'events';
+
+// The following types are likely to be needed / used:
+export { MariaDbError, ConnectionConfig };
 
 export enum emitType {
     // Make lists to attach always log levels UP TO selected one: dynamically and recursively build.
     DEBUG = 'debug',
     TRACE = 'trace',
-    ALL = '*',
+    ALL = 'all',
 }
 
 export class SqlScript { // TODO: implements Promise<any>
@@ -25,12 +28,12 @@ export class SqlScript { // TODO: implements Promise<any>
         this.connection = this.getConnectionPromise(conf);
     }
 
-    getConnectionPromise(conf: ConnectionConfig): Promise<Connection> {
+    private getConnectionPromise(conf: ConnectionConfig): Promise<Connection> {
         const connection: Promise<Connection> = createConnection(conf);
         return connection;
     }
 
-    makeRawSqlRequest(
+    private makeRawSqlRequest(
         connection: Promise<Connection>,
         query: string): Promise<any | undefined> {
         return connection.then((conn) => {
@@ -44,7 +47,7 @@ export class SqlScript { // TODO: implements Promise<any>
         });
     }
 
-    isDatabaseExistent(connection: Promise<Connection>, dbName: string): Promise<boolean> {
+    private isDatabaseExistent(connection: Promise<Connection>, dbName: string): Promise<boolean> {
         return this.makeRawSqlRequest(
             connection,
             `SHOW DATABASES LIKE '${dbName}'`,
@@ -56,7 +59,7 @@ export class SqlScript { // TODO: implements Promise<any>
         });
     }
 
-    getDbSchemaVersion(connection: Promise<Connection>, dbName: string): Promise<number> {
+    private getDbSchemaVersion(connection: Promise<Connection>, dbName: string): Promise<number> {
         return this.makeRawSqlRequest(
             connection,
             `SELECT \`value\` FROM \`${dbName}\`.\`config\` WHERE \`key\`="schemaVersion";`,
@@ -72,7 +75,13 @@ export class SqlScript { // TODO: implements Promise<any>
         return this.defaultEmitter;
     }
 
-    attachLogger(t: emitType, cb: any): SqlScript {
+    /**
+     * Attach a custom logger to this module. Specify to which kind of logs you want to listen to at least.
+     *
+     * @param t minimum log level to listen to
+     * @param cb callback function
+     */
+    attachLogger(t: emitType, cb: (...args: any[]) => void): SqlScript {
         if (t === emitType.ALL) {
             for (const key in emitType) {
                 // TODO: Test case
@@ -81,9 +90,16 @@ export class SqlScript { // TODO: implements Promise<any>
         } else {
             this.defaultEmitter.on(t, cb);
         }
+        this.defaultEmitter.emit(t, `Logging ${t} events to custom logger.`);
         return this;
     }
 
+    /**
+     * Select the database to use in this script.
+     * It is possible to create a new one if necessary.
+     *
+     * @param db Database to create or use
+     */
     useDatabase(db: Database): SqlScript {
         this.dbToUse = db;
         if (!db.alreadyExists) {
@@ -93,11 +109,21 @@ export class SqlScript { // TODO: implements Promise<any>
         return this;
     }
 
+    /**
+     * Table to create in the previously specified database
+     *
+     * @param table
+     */
     createTable(table: Table): SqlScript {
         this.addRawSql(table.sqlify(this.dbToUse!.name));
         return this;
     }
 
+    /**
+     * As a mitigation for database methods not implemented yet
+     *
+     * @param sql Raw SQL string to execute.
+     */
     addRawSql(sql: string): SqlScript {
         this.defaultEmitter.emit(emitType.TRACE, `Adding SQL statement to queue: ${sql}`);
         this.sqlStatements.push(sql);
@@ -105,8 +131,13 @@ export class SqlScript { // TODO: implements Promise<any>
 
     }
 
-    // TODO: Increase schemaVersion config field.
+    /**
+     * Execute the previously generated SQL statements
+     *
+     * @param increaseVersion If set, the database version number will be incremented by one
+     */
     execute(increaseVersion: boolean = true): Promise<any> {
+        // TODO: Increase schemaVersion config field: Implement
         const p = Promise.resolve();
         let currentDbSchemaVersion: number;
         if (isNullOrUndefined(this.dbToUse)) {

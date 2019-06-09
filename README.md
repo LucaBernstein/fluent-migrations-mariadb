@@ -12,8 +12,7 @@ This module makes it also simple for you to handle database installations. The f
 
 ```javascript
 // 000.initial-db-setup.ts
-import { SqlScript, Database, Table, TableColumnChar, TableColumnCustom, emitType } from 'migrations-fluent-mariadb';
-import { ConnectionConfig, MariaDbError } from 'mariadb';
+import { SqlScript, Database, Table, TableColumnChar, TableColumnCustom, emitType, ConnectionConfig, MariaDbError } from 'migrations-fluent-mariadb';
 import { LOGGER } from '../../logger';
 
 const conf: ConnectionConfig;

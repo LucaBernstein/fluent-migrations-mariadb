@@ -77,6 +77,7 @@ var SqlScript = /** @class */ (function () {
         else {
             this.defaultEmitter.on(t, cb);
         }
+        this.defaultEmitter.emit(t, 'Attached custom logger to module.');
         return this;
     };
     SqlScript.prototype.useDatabase = function (db) {
