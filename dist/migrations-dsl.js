@@ -16,13 +16,23 @@ Object.defineProperty(exports, "__esModule", { value: true });
 var util_1 = require("util");
 var mariadb_1 = require("mariadb");
 var events_1 = require("events");
+// ----- EVENT EMITTER -----
+// TODO: Refactor to separate module and import here.
 var defaultEmitter = new events_1.EventEmitter();
 function getDefaultEmitter() {
     return defaultEmitter;
 }
 exports.getDefaultEmitter = getDefaultEmitter;
-var EMIT_DEBUG = 'debug';
-var EMIT_TRACE = 'trace';
+var emitType;
+(function (emitType) {
+    emitType["DEBUG"] = "debug";
+    emitType["TRACE"] = "trace";
+})(emitType = exports.emitType || (exports.emitType = {}));
+function logCallback(t, cb) {
+    defaultEmitter.on(t, cb);
+}
+exports.logCallback = logCallback;
+// ----- MariaDB -----
 function getConnectionPromise(conf) {
     var connection = mariadb_1.createConnection(conf);
     return connection;
@@ -32,10 +42,10 @@ var DbGenerics;
     function makeRawSqlRequest(connection, query) {
         return connection.then(function (conn) {
             return conn.query(query).then(function (res) {
-                defaultEmitter.emit(EMIT_TRACE, 'RESULT FROM DB:'); // TODO: Make trace
+                defaultEmitter.emit(emitType.TRACE, 'RESULT FROM DB:'); // TODO: Make trace
                 // TODO: Configure log4js to be able to set only specific classes to listen to TRACE
-                defaultEmitter.emit(EMIT_TRACE, res);
-                defaultEmitter.emit(EMIT_TRACE, res[0]);
+                defaultEmitter.emit(emitType.TRACE, res);
+                defaultEmitter.emit(emitType.TRACE, res[0]);
                 return res[0];
             });
         });
@@ -80,7 +90,7 @@ var SqlScript = /** @class */ (function () {
         return this;
     };
     SqlScript.prototype.addRawSql = function (sql) {
-        defaultEmitter.emit(EMIT_TRACE, "Adding SQL statement to queue: " + sql);
+        defaultEmitter.emit(emitType.TRACE, "Adding SQL statement to queue: " + sql);
         this.sqlStatements.push(sql);
         return this;
     };
@@ -108,10 +118,10 @@ var SqlScript = /** @class */ (function () {
         }).then(function () {
             return new Promise(function () {
                 if (_this.schemaVersion >= currentDbSchemaVersion) {
-                    defaultEmitter.emit(EMIT_DEBUG, "Not executing migration script to '" + _this.schemaVersion + "',\n                    as database version is already equal or higher ('" + currentDbSchemaVersion + "').");
+                    defaultEmitter.emit(emitType.DEBUG, "Not executing migration script to '" + _this.schemaVersion + "',\n                    as database version is already equal or higher ('" + currentDbSchemaVersion + "').");
                 }
                 else {
-                    defaultEmitter.emit(EMIT_DEBUG, "Starting database migration from version '" + currentDbSchemaVersion + "'\n                    to version '" + _this.schemaVersion + "'.");
+                    defaultEmitter.emit(emitType.DEBUG, "Starting database migration from version '" + currentDbSchemaVersion + "'\n                    to version '" + _this.schemaVersion + "'.");
                     // TODO: Implement migration logic
                     // this.sqlStatements
                     _this.connection.then(function (conn) {

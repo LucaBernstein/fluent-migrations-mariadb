@@ -13,8 +13,8 @@ export function getDefaultEmitter(): EventEmitter {
 }
 
 export enum emitType {
-    DEBUG = "debug",
-    TRACE = "trace"
+    DEBUG = 'debug',
+    TRACE = 'trace',
 }
 
 export function logCallback(t: emitType, cb: any) {
