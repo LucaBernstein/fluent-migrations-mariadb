@@ -3,7 +3,8 @@ import { Connection, ConnectionConfig } from 'mariadb';
 import { EventEmitter } from 'events';
 export declare enum emitType {
     DEBUG = "debug",
-    TRACE = "trace"
+    TRACE = "trace",
+    ALL = "*"
 }
 export declare class SqlScript {
     connection: Promise<Connection>;
@@ -17,9 +18,9 @@ export declare class SqlScript {
     isDatabaseExistent(connection: Promise<Connection>, dbName: string): Promise<boolean>;
     getDbSchemaVersion(connection: Promise<Connection>, dbName: string): Promise<number>;
     getDefaultEmitter(): EventEmitter;
-    attachLogger(t: emitType, cb: any): void;
+    attachLogger(t: emitType, cb: any): SqlScript;
     useDatabase(db: Database): SqlScript;
-    createTable(table: Table): this;
+    createTable(table: Table): SqlScript;
     addRawSql(sql: string): SqlScript;
     execute(increaseVersion?: boolean): Promise<any>;
 }

@@ -5,7 +5,7 @@ import { EventEmitter } from 'events';
 export enum emitType {
     DEBUG = 'debug',
     TRACE = 'trace',
-    ALL = '*'
+    ALL = '*',
 }
 
 export class SqlScript { // TODO: implements Promise<any>

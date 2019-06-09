@@ -20,12 +20,12 @@ var emitType;
 (function (emitType) {
     emitType["DEBUG"] = "debug";
     emitType["TRACE"] = "trace";
+    emitType["ALL"] = "*";
 })(emitType = exports.emitType || (exports.emitType = {}));
 var SqlScript = /** @class */ (function () {
     function SqlScript(conf, schemaVersion) {
         this.sqlStatements = [];
-        // ----- EVENT EMITTER -----
-        // TODO: Refactor to separate module and import here.
+        // TODO: Refactor event emitter to separate module and import here.
         this.defaultEmitter = new events_1.EventEmitter();
         // Provide LOGGER callback to plug into emitter: EventEmitter
         this.schemaVersion = schemaVersion;
@@ -67,7 +67,16 @@ var SqlScript = /** @class */ (function () {
         return this.defaultEmitter;
     };
     SqlScript.prototype.attachLogger = function (t, cb) {
-        this.defaultEmitter.on(t, cb);
+        if (t === emitType.ALL) {
+            for (var key in emitType) {
+                // TODO: Test case
+                this.defaultEmitter.on(key, cb);
+            }
+        }
+        else {
+            this.defaultEmitter.on(t, cb);
+        }
+        return this;
     };
     SqlScript.prototype.useDatabase = function (db) {
         this.dbToUse = db;
