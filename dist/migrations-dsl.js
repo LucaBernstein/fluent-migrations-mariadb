@@ -21,7 +21,7 @@ var emitType;
     // Make lists to attach always log levels UP TO selected one: dynamically and recursively build.
     emitType["DEBUG"] = "debug";
     emitType["TRACE"] = "trace";
-    emitType["ALL"] = "*";
+    emitType["ALL"] = "all";
 })(emitType = exports.emitType || (exports.emitType = {}));
 var SqlScript = /** @class */ (function () {
     function SqlScript(conf, schemaVersion) {
@@ -67,6 +67,12 @@ var SqlScript = /** @class */ (function () {
     SqlScript.prototype.getDefaultEmitter = function () {
         return this.defaultEmitter;
     };
+    /**
+     * Attach a custom logger to this module. Specify to which kind of logs you want to listen to at least.
+     *
+     * @param t minimum log level to listen to
+     * @param cb callback function
+     */
     SqlScript.prototype.attachLogger = function (t, cb) {
         if (t === emitType.ALL) {
             for (var key in emitType) {
@@ -77,9 +83,15 @@ var SqlScript = /** @class */ (function () {
         else {
             this.defaultEmitter.on(t, cb);
         }
-        this.defaultEmitter.emit(t, 'Attached custom logger to module.');
+        this.defaultEmitter.emit(t, "Logging " + t + " events to custom logger.");
         return this;
     };
+    /**
+     * Select the database to use in this script.
+     * It is possible to create a new one if necessary.
+     *
+     * @param db Database to create or use
+     */
     SqlScript.prototype.useDatabase = function (db) {
         this.dbToUse = db;
         if (!db.alreadyExists) {
@@ -88,19 +100,34 @@ var SqlScript = /** @class */ (function () {
         }
         return this;
     };
+    /**
+     * Table to create in the previously specified database
+     *
+     * @param table
+     */
     SqlScript.prototype.createTable = function (table) {
         this.addRawSql(table.sqlify(this.dbToUse.name));
         return this;
     };
+    /**
+     * As a mitigation for database methods not implemented yet
+     *
+     * @param sql Raw SQL string to execute.
+     */
     SqlScript.prototype.addRawSql = function (sql) {
         this.defaultEmitter.emit(emitType.TRACE, "Adding SQL statement to queue: " + sql);
         this.sqlStatements.push(sql);
         return this;
     };
-    // TODO: Increase schemaVersion config field.
+    /**
+     * Execute the previously generated SQL statements
+     *
+     * @param increaseVersion If set, the database version number will be incremented by one
+     */
     SqlScript.prototype.execute = function (increaseVersion) {
         var _this = this;
         if (increaseVersion === void 0) { increaseVersion = true; }
+        // TODO: Increase schemaVersion config field: Implement
         var p = Promise.resolve();
         var currentDbSchemaVersion;
         if (util_1.isNullOrUndefined(this.dbToUse)) {
