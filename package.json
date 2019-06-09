@@ -11,7 +11,7 @@
         "build": "npm run lint:fix && npm run tsc",
         "test": "echo \"Error: no test specified\" && exit 1",
         "prepack": "npm run build",
-        "pub:minor": "npm pack && npm version minor"
+        "v:min": "npm version minor -m \"Bump version to %s\""
     },
     "dependencies": {
         "mariadb": "~2.0.5"
