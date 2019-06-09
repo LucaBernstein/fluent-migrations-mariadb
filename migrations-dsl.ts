@@ -2,49 +2,48 @@ import { isNullOrUndefined, isNull } from 'util';
 import { Connection, ConnectionConfig, createConnection } from 'mariadb';
 import { EventEmitter } from 'events';
 
-// ----- EVENT EMITTER -----
-
-// TODO: Refactor to separate module and import here.
-
-const defaultEmitter = new EventEmitter();
-
-export function getDefaultEmitter(): EventEmitter {
-    return defaultEmitter;
-}
-
 export enum emitType {
     DEBUG = 'debug',
     TRACE = 'trace',
 }
 
-export function logCallback(t: emitType, cb: any) {
-    defaultEmitter.on(t, cb);
-}
+export class SqlScript { // TODO: implements Promise<any>
+    connection: Promise<Connection>;
 
-// ----- MariaDB -----
+    schemaVersion: number;
+    sqlStatements: string[] = [];
+    dbToUse?: Database;
 
-function getConnectionPromise(conf: ConnectionConfig): Promise<Connection> {
-    const connection: Promise<Connection> = createConnection(conf);
-    return connection;
-}
+    // TODO: Refactor event emitter to separate module and import here.
+    defaultEmitter = new EventEmitter();
 
-export module DbGenerics {
-    export function makeRawSqlRequest(
+    constructor(conf: ConnectionConfig, schemaVersion: number) {
+        // Provide LOGGER callback to plug into emitter: EventEmitter
+        this.schemaVersion = schemaVersion;
+        this.connection = this.getConnectionPromise(conf);
+    }
+
+    getConnectionPromise(conf: ConnectionConfig): Promise<Connection> {
+        const connection: Promise<Connection> = createConnection(conf);
+        return connection;
+    }
+
+    makeRawSqlRequest(
         connection: Promise<Connection>,
         query: string): Promise<any | undefined> {
         return connection.then((conn) => {
             return conn.query(query).then((res) => {
-                defaultEmitter.emit(emitType.TRACE, 'RESULT FROM DB:'); // TODO: Make trace
+                this.defaultEmitter.emit(emitType.TRACE, 'RESULT FROM DB:'); // TODO: Make trace
                 // TODO: Configure log4js to be able to set only specific classes to listen to TRACE
-                defaultEmitter.emit(emitType.TRACE, res);
-                defaultEmitter.emit(emitType.TRACE, res[0]);
+                this.defaultEmitter.emit(emitType.TRACE, res);
+                this.defaultEmitter.emit(emitType.TRACE, res[0]);
                 return res[0];
             });
         });
     }
 
-    export function isDatabaseExistent(connection: Promise<Connection>, dbName: string): Promise<boolean> {
-        return makeRawSqlRequest(
+    isDatabaseExistent(connection: Promise<Connection>, dbName: string): Promise<boolean> {
+        return this.makeRawSqlRequest(
             connection,
             `SHOW DATABASES LIKE '${dbName}'`,
         ).then((res) => {
@@ -55,8 +54,8 @@ export module DbGenerics {
         });
     }
 
-    export function getDbSchemaVersion(connection: Promise<Connection>, dbName: string): Promise<number> {
-        return makeRawSqlRequest(
+    getDbSchemaVersion(connection: Promise<Connection>, dbName: string): Promise<number> {
+        return this.makeRawSqlRequest(
             connection,
             `SELECT \`value\` FROM \`${dbName}\`.\`config\` WHERE \`key\`="schemaVersion";`,
         ).then((res) => {
@@ -66,19 +65,13 @@ export module DbGenerics {
             return res!.value;
         });
     }
-}
 
-export class SqlScript { // TODO: implements Promise<any>
-    connection: Promise<Connection>;
+    getDefaultEmitter(): EventEmitter {
+        return this.defaultEmitter;
+    }
 
-    schemaVersion: number;
-    sqlStatements: string[] = [];
-    dbToUse?: Database;
-
-    constructor(conf: ConnectionConfig, schemaVersion: number) {
-        // Provide LOGGER callback to plug into emitter: EventEmitter
-        this.schemaVersion = schemaVersion;
-        this.connection = getConnectionPromise(conf);
+    attachLogger(t: emitType, cb: any) {
+        this.defaultEmitter.on(t, cb);
     }
 
     useDatabase(db: Database): SqlScript {
@@ -96,7 +89,7 @@ export class SqlScript { // TODO: implements Promise<any>
     }
 
     addRawSql(sql: string): SqlScript {
-        defaultEmitter.emit(emitType.TRACE, `Adding SQL statement to queue: ${sql}`);
+        this.defaultEmitter.emit(emitType.TRACE, `Adding SQL statement to queue: ${sql}`);
         this.sqlStatements.push(sql);
         return this;
 
@@ -110,13 +103,13 @@ export class SqlScript { // TODO: implements Promise<any>
             throw Error('Please define a database to use!');
         }
         return p.then(() => {
-            return DbGenerics.isDatabaseExistent(this.connection, this.dbToUse!.name)
+            return this.isDatabaseExistent(this.connection, this.dbToUse!.name)
                 .then((dbExists) => {
                     return dbExists;
                 });
         }).then((dbExists) => {
             if (dbExists) {
-                return DbGenerics.getDbSchemaVersion(this.connection, this.dbToUse!.name)
+                return this.getDbSchemaVersion(this.connection, this.dbToUse!.name)
                     .then((res) => {
                         currentDbSchemaVersion = res;
                     });
@@ -124,10 +117,10 @@ export class SqlScript { // TODO: implements Promise<any>
         }).then(() => {
             return new Promise(() => {
                 if (this.schemaVersion >= currentDbSchemaVersion) {
-                    defaultEmitter.emit(emitType.DEBUG, `Not executing migration script to '${this.schemaVersion}',
+                    this.defaultEmitter.emit(emitType.DEBUG, `Not executing migration script to '${this.schemaVersion}',
                     as database version is already equal or higher ('${currentDbSchemaVersion}').`);
                 } else {
-                    defaultEmitter.emit(emitType.DEBUG, `Starting database migration from version '${currentDbSchemaVersion}'
+                    this.defaultEmitter.emit(emitType.DEBUG, `Starting database migration from version '${currentDbSchemaVersion}'
                     to version '${this.schemaVersion}'.`);
                     // TODO: Implement migration logic
                     // this.sqlStatements

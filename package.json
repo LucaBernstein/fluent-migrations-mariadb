@@ -9,8 +9,7 @@
         "lint:fix": "tslint -c tslint.js -p tsconfig.json --fix",
         "lint": "tslint -c tslint.js -p tsconfig.json",
         "build": "npm run lint:fix && npm run tsc",
-        "test": "echo \"Error: no test specified\" && exit 1",
-        "release:local": "npm run build && npm pack"
+        "test": "echo \"Error: no test specified\" && exit 1"
     },
     "dependencies": {
         "mariadb": "~2.0.5"

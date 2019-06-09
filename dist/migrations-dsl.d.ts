@@ -1,23 +1,23 @@
 /// <reference types="node" />
 import { Connection, ConnectionConfig } from 'mariadb';
 import { EventEmitter } from 'events';
-export declare function getDefaultEmitter(): EventEmitter;
 export declare enum emitType {
     DEBUG = "debug",
     TRACE = "trace"
-}
-export declare function logCallback(t: emitType, cb: any): void;
-export declare module DbGenerics {
-    function makeRawSqlRequest(connection: Promise<Connection>, query: string): Promise<any | undefined>;
-    function isDatabaseExistent(connection: Promise<Connection>, dbName: string): Promise<boolean>;
-    function getDbSchemaVersion(connection: Promise<Connection>, dbName: string): Promise<number>;
 }
 export declare class SqlScript {
     connection: Promise<Connection>;
     schemaVersion: number;
     sqlStatements: string[];
     dbToUse?: Database;
+    defaultEmitter: EventEmitter;
     constructor(conf: ConnectionConfig, schemaVersion: number);
+    getConnectionPromise(conf: ConnectionConfig): Promise<Connection>;
+    makeRawSqlRequest(connection: Promise<Connection>, query: string): Promise<any | undefined>;
+    isDatabaseExistent(connection: Promise<Connection>, dbName: string): Promise<boolean>;
+    getDbSchemaVersion(connection: Promise<Connection>, dbName: string): Promise<number>;
+    getDefaultEmitter(): EventEmitter;
+    attachLogger(t: emitType, cb: any): void;
     useDatabase(db: Database): SqlScript;
     createTable(table: Table): this;
     addRawSql(sql: string): SqlScript;

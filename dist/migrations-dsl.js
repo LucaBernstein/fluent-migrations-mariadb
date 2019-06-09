@@ -16,67 +16,59 @@ Object.defineProperty(exports, "__esModule", { value: true });
 var util_1 = require("util");
 var mariadb_1 = require("mariadb");
 var events_1 = require("events");
-// ----- EVENT EMITTER -----
-// TODO: Refactor to separate module and import here.
-var defaultEmitter = new events_1.EventEmitter();
-function getDefaultEmitter() {
-    return defaultEmitter;
-}
-exports.getDefaultEmitter = getDefaultEmitter;
 var emitType;
 (function (emitType) {
     emitType["DEBUG"] = "debug";
     emitType["TRACE"] = "trace";
 })(emitType = exports.emitType || (exports.emitType = {}));
-function logCallback(t, cb) {
-    defaultEmitter.on(t, cb);
-}
-exports.logCallback = logCallback;
-// ----- MariaDB -----
-function getConnectionPromise(conf) {
-    var connection = mariadb_1.createConnection(conf);
-    return connection;
-}
-var DbGenerics;
-(function (DbGenerics) {
-    function makeRawSqlRequest(connection, query) {
+var SqlScript = /** @class */ (function () {
+    function SqlScript(conf, schemaVersion) {
+        this.sqlStatements = [];
+        // ----- EVENT EMITTER -----
+        // TODO: Refactor to separate module and import here.
+        this.defaultEmitter = new events_1.EventEmitter();
+        // Provide LOGGER callback to plug into emitter: EventEmitter
+        this.schemaVersion = schemaVersion;
+        this.connection = this.getConnectionPromise(conf);
+    }
+    SqlScript.prototype.getConnectionPromise = function (conf) {
+        var connection = mariadb_1.createConnection(conf);
+        return connection;
+    };
+    SqlScript.prototype.makeRawSqlRequest = function (connection, query) {
+        var _this = this;
         return connection.then(function (conn) {
             return conn.query(query).then(function (res) {
-                defaultEmitter.emit(emitType.TRACE, 'RESULT FROM DB:'); // TODO: Make trace
+                _this.defaultEmitter.emit(emitType.TRACE, 'RESULT FROM DB:'); // TODO: Make trace
                 // TODO: Configure log4js to be able to set only specific classes to listen to TRACE
-                defaultEmitter.emit(emitType.TRACE, res);
-                defaultEmitter.emit(emitType.TRACE, res[0]);
+                _this.defaultEmitter.emit(emitType.TRACE, res);
+                _this.defaultEmitter.emit(emitType.TRACE, res[0]);
                 return res[0];
             });
         });
-    }
-    DbGenerics.makeRawSqlRequest = makeRawSqlRequest;
-    function isDatabaseExistent(connection, dbName) {
-        return makeRawSqlRequest(connection, "SHOW DATABASES LIKE '" + dbName + "'").then(function (res) {
+    };
+    SqlScript.prototype.isDatabaseExistent = function (connection, dbName) {
+        return this.makeRawSqlRequest(connection, "SHOW DATABASES LIKE '" + dbName + "'").then(function (res) {
             if (util_1.isNullOrUndefined(res)) {
                 return false;
             }
             return res["Database (" + dbName + ")"];
         });
-    }
-    DbGenerics.isDatabaseExistent = isDatabaseExistent;
-    function getDbSchemaVersion(connection, dbName) {
-        return makeRawSqlRequest(connection, "SELECT `value` FROM `" + dbName + "`.`config` WHERE `key`=\"schemaVersion\";").then(function (res) {
+    };
+    SqlScript.prototype.getDbSchemaVersion = function (connection, dbName) {
+        return this.makeRawSqlRequest(connection, "SELECT `value` FROM `" + dbName + "`.`config` WHERE `key`=\"schemaVersion\";").then(function (res) {
             if (util_1.isNullOrUndefined(res)) {
                 return -1;
             }
             return res.value;
         });
-    }
-    DbGenerics.getDbSchemaVersion = getDbSchemaVersion;
-})(DbGenerics = exports.DbGenerics || (exports.DbGenerics = {}));
-var SqlScript = /** @class */ (function () {
-    function SqlScript(conf, schemaVersion) {
-        this.sqlStatements = [];
-        // Provide LOGGER callback to plug into emitter: EventEmitter
-        this.schemaVersion = schemaVersion;
-        this.connection = getConnectionPromise(conf);
-    }
+    };
+    SqlScript.prototype.getDefaultEmitter = function () {
+        return this.defaultEmitter;
+    };
+    SqlScript.prototype.attachLogger = function (t, cb) {
+        this.defaultEmitter.on(t, cb);
+    };
     SqlScript.prototype.useDatabase = function (db) {
         this.dbToUse = db;
         if (!db.alreadyExists) {
@@ -90,7 +82,7 @@ var SqlScript = /** @class */ (function () {
         return this;
     };
     SqlScript.prototype.addRawSql = function (sql) {
-        defaultEmitter.emit(emitType.TRACE, "Adding SQL statement to queue: " + sql);
+        this.defaultEmitter.emit(emitType.TRACE, "Adding SQL statement to queue: " + sql);
         this.sqlStatements.push(sql);
         return this;
     };
@@ -104,13 +96,13 @@ var SqlScript = /** @class */ (function () {
             throw Error('Please define a database to use!');
         }
         return p.then(function () {
-            return DbGenerics.isDatabaseExistent(_this.connection, _this.dbToUse.name)
+            return _this.isDatabaseExistent(_this.connection, _this.dbToUse.name)
                 .then(function (dbExists) {
                 return dbExists;
             });
         }).then(function (dbExists) {
             if (dbExists) {
-                return DbGenerics.getDbSchemaVersion(_this.connection, _this.dbToUse.name)
+                return _this.getDbSchemaVersion(_this.connection, _this.dbToUse.name)
                     .then(function (res) {
                     currentDbSchemaVersion = res;
                 });
@@ -118,10 +110,10 @@ var SqlScript = /** @class */ (function () {
         }).then(function () {
             return new Promise(function () {
                 if (_this.schemaVersion >= currentDbSchemaVersion) {
-                    defaultEmitter.emit(emitType.DEBUG, "Not executing migration script to '" + _this.schemaVersion + "',\n                    as database version is already equal or higher ('" + currentDbSchemaVersion + "').");
+                    _this.defaultEmitter.emit(emitType.DEBUG, "Not executing migration script to '" + _this.schemaVersion + "',\n                    as database version is already equal or higher ('" + currentDbSchemaVersion + "').");
                 }
                 else {
-                    defaultEmitter.emit(emitType.DEBUG, "Starting database migration from version '" + currentDbSchemaVersion + "'\n                    to version '" + _this.schemaVersion + "'.");
+                    _this.defaultEmitter.emit(emitType.DEBUG, "Starting database migration from version '" + currentDbSchemaVersion + "'\n                    to version '" + _this.schemaVersion + "'.");
                     // TODO: Implement migration logic
                     // this.sqlStatements
                     _this.connection.then(function (conn) {

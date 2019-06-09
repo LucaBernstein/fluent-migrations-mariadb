@@ -60,6 +60,10 @@ return new SqlScript(conf, VERSION)
 
 ### Plug in your own logger
 
+```javascript
+
+```
+
 # Maintaining this module
 
 ## Bump version on release
