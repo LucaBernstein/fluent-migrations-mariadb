@@ -18,6 +18,7 @@ var mariadb_1 = require("mariadb");
 var events_1 = require("events");
 var emitType;
 (function (emitType) {
+    // Make lists to attach always log levels UP TO selected one: dynamically and recursively build.
     emitType["DEBUG"] = "debug";
     emitType["TRACE"] = "trace";
     emitType["ALL"] = "*";
