@@ -2,7 +2,26 @@ import { isNullOrUndefined, isNull } from 'util';
 import { Connection, ConnectionConfig, createConnection } from 'mariadb';
 import { EventEmitter } from 'events';
 
-const emitter = new EventEmitter();
+// ----- EVENT EMITTER -----
+
+// TODO: Refactor to separate module and import here.
+
+const defaultEmitter = new EventEmitter();
+
+export function getDefaultEmitter(): EventEmitter {
+    return defaultEmitter;
+}
+
+export enum emitType {
+    DEBUG = "debug",
+    TRACE = "trace"
+}
+
+export function logCallback(t: emitType, cb: any) {
+    defaultEmitter.on(t, cb);
+}
+
+// ----- MariaDB -----
 
 function getConnectionPromise(conf: ConnectionConfig): Promise<Connection> {
     const connection: Promise<Connection> = createConnection(conf);
@@ -15,10 +34,10 @@ export module DbGenerics {
         query: string): Promise<any | undefined> {
         return connection.then((conn) => {
             return conn.query(query).then((res) => {
-                emitter.emit('trace', 'RESULT FROM DB:'); // TODO: Make trace
+                defaultEmitter.emit(emitType.TRACE, 'RESULT FROM DB:'); // TODO: Make trace
                 // TODO: Configure log4js to be able to set only specific classes to listen to TRACE
-                emitter.emit('trace', res);
-                emitter.emit('trace', res[0]);
+                defaultEmitter.emit(emitType.TRACE, res);
+                defaultEmitter.emit(emitType.TRACE, res[0]);
                 return res[0];
             });
         });
@@ -57,6 +76,7 @@ export class SqlScript { // TODO: implements Promise<any>
     dbToUse?: Database;
 
     constructor(conf: ConnectionConfig, schemaVersion: number) {
+        // Provide LOGGER callback to plug into emitter: EventEmitter
         this.schemaVersion = schemaVersion;
         this.connection = getConnectionPromise(conf);
     }
@@ -76,7 +96,7 @@ export class SqlScript { // TODO: implements Promise<any>
     }
 
     addRawSql(sql: string): SqlScript {
-        emitter.emit('trace', `Adding SQL statement to queue: ${sql}`);
+        defaultEmitter.emit(emitType.TRACE, `Adding SQL statement to queue: ${sql}`);
         this.sqlStatements.push(sql);
         return this;
 
@@ -104,10 +124,10 @@ export class SqlScript { // TODO: implements Promise<any>
         }).then(() => {
             return new Promise(() => {
                 if (this.schemaVersion >= currentDbSchemaVersion) {
-                    emitter.emit('debug', `Not executing migration script to '${this.schemaVersion}',
+                    defaultEmitter.emit(emitType.DEBUG, `Not executing migration script to '${this.schemaVersion}',
                     as database version is already equal or higher ('${currentDbSchemaVersion}').`);
                 } else {
-                    emitter.emit('debug', `Starting database migration from version '${currentDbSchemaVersion}'
+                    defaultEmitter.emit(emitType.DEBUG, `Starting database migration from version '${currentDbSchemaVersion}'
                     to version '${this.schemaVersion}'.`);
                     // TODO: Implement migration logic
                     // this.sqlStatements

@@ -1,4 +1,7 @@
+/// <reference types="node" />
 import { Connection, ConnectionConfig } from 'mariadb';
+import { EventEmitter } from 'events';
+export declare function getDefaultEmitter(): EventEmitter;
 export declare module DbGenerics {
     function makeRawSqlRequest(connection: Promise<Connection>, query: string): Promise<any | undefined>;
     function isDatabaseExistent(connection: Promise<Connection>, dbName: string): Promise<boolean>;
