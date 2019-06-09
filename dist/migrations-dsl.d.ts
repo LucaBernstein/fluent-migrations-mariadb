@@ -12,15 +12,21 @@ export declare class SqlScript {
     schemaVersion: number;
     sqlStatements: string[];
     dbToUse?: Database;
-    defaultEmitter: EventEmitter;
+    logEmitter?: EventEmitter;
     constructor(conf: ConnectionConfig, schemaVersion: number);
     private getConnectionPromise;
+    /**
+     * Protect lazy initialization of logEmitter.
+     *
+     * @see SqlScript#attachLogger
+     */
+    private emitLogIfLoggerAttached;
     private makeRawSqlRequest;
     private isDatabaseExistent;
     private getDbSchemaVersion;
-    getDefaultEmitter(): EventEmitter;
     /**
      * Attach a custom logger to this module. Specify to which kind of logs you want to listen to at least.
+     * Lazy load emitter, only if needed
      *
      * @param t minimum log level to listen to
      * @param cb callback function

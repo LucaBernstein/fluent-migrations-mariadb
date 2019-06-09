@@ -20,7 +20,7 @@ export class SqlScript { // TODO: implements Promise<any>
     dbToUse?: Database;
 
     // TODO: Refactor event emitter to separate module and import here.
-    defaultEmitter = new EventEmitter();
+    logEmitter?: EventEmitter;
 
     constructor(conf: ConnectionConfig, schemaVersion: number) {
         // Provide LOGGER callback to plug into emitter: EventEmitter
@@ -33,15 +33,27 @@ export class SqlScript { // TODO: implements Promise<any>
         return connection;
     }
 
+    /**
+     * Protect lazy initialization of logEmitter.
+     *
+     * @see SqlScript#attachLogger
+     */
+    private emitLogIfLoggerAttached(t: emitType, m: string): SqlScript {
+        if (this.logEmitter) {
+            this.logEmitter.emit(t, m);
+        }
+        return this;
+    }
+
     private makeRawSqlRequest(
         connection: Promise<Connection>,
         query: string): Promise<any | undefined> {
         return connection.then((conn) => {
             return conn.query(query).then((res) => {
-                this.defaultEmitter.emit(emitType.TRACE, 'RESULT FROM DB:'); // TODO: Make trace
+                this.emitLogIfLoggerAttached(emitType.TRACE, 'RESULT FROM DB:'); // TODO: Make trace
                 // TODO: Configure log4js to be able to set only specific classes to listen to TRACE
-                this.defaultEmitter.emit(emitType.TRACE, res);
-                this.defaultEmitter.emit(emitType.TRACE, res[0]);
+                this.emitLogIfLoggerAttached(emitType.TRACE, res);
+                this.emitLogIfLoggerAttached(emitType.TRACE, res[0]);
                 return res[0];
             });
         });
@@ -71,26 +83,27 @@ export class SqlScript { // TODO: implements Promise<any>
         });
     }
 
-    getDefaultEmitter(): EventEmitter {
-        return this.defaultEmitter;
-    }
-
     /**
      * Attach a custom logger to this module. Specify to which kind of logs you want to listen to at least.
+     * Lazy load emitter, only if needed
      *
      * @param t minimum log level to listen to
      * @param cb callback function
      */
     attachLogger(t: emitType, cb: (...args: any[]) => void): SqlScript {
+        // Lazy load event emitter
+        if (!this.logEmitter) {
+            this.logEmitter = new EventEmitter();
+        }
         if (t === emitType.ALL) {
             for (const key in emitType) {
                 // TODO: Test case
-                this.defaultEmitter.on(key, cb);
+                this.logEmitter.on(key, cb);
             }
         } else {
-            this.defaultEmitter.on(t, cb);
+            this.logEmitter.on(t, cb);
         }
-        this.defaultEmitter.emit(t, `Logging ${t} events to custom logger.`);
+        this.emitLogIfLoggerAttached(t, `Logging ${t} events to custom logger.`);
         return this;
     }
 
@@ -125,7 +138,7 @@ export class SqlScript { // TODO: implements Promise<any>
      * @param sql Raw SQL string to execute.
      */
     addRawSql(sql: string): SqlScript {
-        this.defaultEmitter.emit(emitType.TRACE, `Adding SQL statement to queue: ${sql}`);
+        this.emitLogIfLoggerAttached(emitType.TRACE, `Adding SQL statement to queue: ${sql}`);
         this.sqlStatements.push(sql);
         return this;
 
@@ -158,11 +171,11 @@ export class SqlScript { // TODO: implements Promise<any>
         }).then(() => {
             return new Promise(() => {
                 if (this.schemaVersion >= currentDbSchemaVersion) {
-                    this.defaultEmitter.emit(emitType.DEBUG, `Not executing migration script to '${this.schemaVersion}',
+                    this.emitLogIfLoggerAttached(emitType.DEBUG, `Not executing migration script to '${this.schemaVersion}',
                     as database version is already equal or higher ('${currentDbSchemaVersion}').`);
                 } else {
-                    this.defaultEmitter.emit(emitType.DEBUG, `Starting database migration from version '${currentDbSchemaVersion}'
-                    to version '${this.schemaVersion}'.`);
+                    this.emitLogIfLoggerAttached(emitType.DEBUG, `Starting database migration from version
+                    '${currentDbSchemaVersion}' to version '${this.schemaVersion}'.`);
                     // TODO: Implement migration logic
                     // this.sqlStatements
                     this.connection.then((conn) => {

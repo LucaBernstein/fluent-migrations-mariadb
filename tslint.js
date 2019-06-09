@@ -13,7 +13,8 @@ module.exports = {
         'ter-indent': [
             true,
             4,
-            { 'SwitchCase': 1
+            {
+                'SwitchCase': 1
             },
         ],
     }

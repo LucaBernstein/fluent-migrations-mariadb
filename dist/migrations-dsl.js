@@ -26,8 +26,6 @@ var emitType;
 var SqlScript = /** @class */ (function () {
     function SqlScript(conf, schemaVersion) {
         this.sqlStatements = [];
-        // TODO: Refactor event emitter to separate module and import here.
-        this.defaultEmitter = new events_1.EventEmitter();
         // Provide LOGGER callback to plug into emitter: EventEmitter
         this.schemaVersion = schemaVersion;
         this.connection = this.getConnectionPromise(conf);
@@ -36,14 +34,25 @@ var SqlScript = /** @class */ (function () {
         var connection = mariadb_1.createConnection(conf);
         return connection;
     };
+    /**
+     * Protect lazy initialization of logEmitter.
+     *
+     * @see SqlScript#attachLogger
+     */
+    SqlScript.prototype.emitLogIfLoggerAttached = function (t, m) {
+        if (this.logEmitter) {
+            this.logEmitter.emit(t, m);
+        }
+        return this;
+    };
     SqlScript.prototype.makeRawSqlRequest = function (connection, query) {
         var _this = this;
         return connection.then(function (conn) {
             return conn.query(query).then(function (res) {
-                _this.defaultEmitter.emit(emitType.TRACE, 'RESULT FROM DB:'); // TODO: Make trace
+                _this.emitLogIfLoggerAttached(emitType.TRACE, 'RESULT FROM DB:'); // TODO: Make trace
                 // TODO: Configure log4js to be able to set only specific classes to listen to TRACE
-                _this.defaultEmitter.emit(emitType.TRACE, res);
-                _this.defaultEmitter.emit(emitType.TRACE, res[0]);
+                _this.emitLogIfLoggerAttached(emitType.TRACE, res);
+                _this.emitLogIfLoggerAttached(emitType.TRACE, res[0]);
                 return res[0];
             });
         });
@@ -64,26 +73,28 @@ var SqlScript = /** @class */ (function () {
             return res.value;
         });
     };
-    SqlScript.prototype.getDefaultEmitter = function () {
-        return this.defaultEmitter;
-    };
     /**
      * Attach a custom logger to this module. Specify to which kind of logs you want to listen to at least.
+     * Lazy load emitter, only if needed
      *
      * @param t minimum log level to listen to
      * @param cb callback function
      */
     SqlScript.prototype.attachLogger = function (t, cb) {
+        // Lazy load event emitter
+        if (!this.logEmitter) {
+            this.logEmitter = new events_1.EventEmitter();
+        }
         if (t === emitType.ALL) {
             for (var key in emitType) {
                 // TODO: Test case
-                this.defaultEmitter.on(key, cb);
+                this.logEmitter.on(key, cb);
             }
         }
         else {
-            this.defaultEmitter.on(t, cb);
+            this.logEmitter.on(t, cb);
         }
-        this.defaultEmitter.emit(t, "Logging " + t + " events to custom logger.");
+        this.emitLogIfLoggerAttached(t, "Logging " + t + " events to custom logger.");
         return this;
     };
     /**
@@ -115,7 +126,7 @@ var SqlScript = /** @class */ (function () {
      * @param sql Raw SQL string to execute.
      */
     SqlScript.prototype.addRawSql = function (sql) {
-        this.defaultEmitter.emit(emitType.TRACE, "Adding SQL statement to queue: " + sql);
+        this.emitLogIfLoggerAttached(emitType.TRACE, "Adding SQL statement to queue: " + sql);
         this.sqlStatements.push(sql);
         return this;
     };
@@ -148,10 +159,10 @@ var SqlScript = /** @class */ (function () {
         }).then(function () {
             return new Promise(function () {
                 if (_this.schemaVersion >= currentDbSchemaVersion) {
-                    _this.defaultEmitter.emit(emitType.DEBUG, "Not executing migration script to '" + _this.schemaVersion + "',\n                    as database version is already equal or higher ('" + currentDbSchemaVersion + "').");
+                    _this.emitLogIfLoggerAttached(emitType.DEBUG, "Not executing migration script to '" + _this.schemaVersion + "',\n                    as database version is already equal or higher ('" + currentDbSchemaVersion + "').");
                 }
                 else {
-                    _this.defaultEmitter.emit(emitType.DEBUG, "Starting database migration from version '" + currentDbSchemaVersion + "'\n                    to version '" + _this.schemaVersion + "'.");
+                    _this.emitLogIfLoggerAttached(emitType.DEBUG, "Starting database migration from version\n                    '" + currentDbSchemaVersion + "' to version '" + _this.schemaVersion + "'.");
                     // TODO: Implement migration logic
                     // this.sqlStatements
                     _this.connection.then(function (conn) {
