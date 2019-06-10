@@ -2,7 +2,7 @@
 
 [![npm version](https://badge.fury.io/js/fluent-migrations-mariadb.svg)](https://badge.fury.io/js/fluent-migrations-mariadb)
 [![Build Status](https://travis-ci.org/LucaBernstein/fluent-migrations-mariadb.svg?branch=master)](https://travis-ci.org/LucaBernstein/fluent-migrations-mariadb)
-[![Coverage Status](https://coveralls.io/repos/github/LucaBernstein/fluent-migrations-mariadb/badge.svg?branch=master)](https://coveralls.io/github/LucaBernstein/fluent-migrations-mariadb?branch=master)
+[![Coverage Status](https://coveralls.io/repos/github/LucaBernstein/fluent-migrations-mariadb/badge.svg?branch=master)](https://coveralls.io/github/LucaBernstein/fluent-migrations-mariadb?branch=master) [![Greenkeeper badge](https://badges.greenkeeper.io/LucaBernstein/fluent-migrations-mariadb.svg)](https://greenkeeper.io/)
 
 A simple and chained MariaDB database installation and migrations API.
 
