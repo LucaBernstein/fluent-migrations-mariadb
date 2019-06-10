@@ -28,11 +28,14 @@ var SqlScript = /** @class */ (function () {
         this.sqlStatements = [];
         // Provide LOGGER callback to plug into emitter: EventEmitter
         this.schemaVersion = schemaVersion;
-        this.connection = this.getConnectionPromise(conf);
+        this.conf = conf;
     }
-    SqlScript.prototype.getConnectionPromise = function (conf) {
-        var connection = mariadb_1.createConnection(conf);
-        return connection;
+    SqlScript.prototype.getConnectionPromise = function () {
+        // Lazy load connection
+        if (!this.connection) {
+            this.connection = mariadb_1.createConnection(this.conf);
+        }
+        return this.connection;
     };
     /**
      * Protect lazy initialization of logEmitter.
@@ -82,17 +85,17 @@ var SqlScript = /** @class */ (function () {
      */
     SqlScript.prototype.attachLogger = function (t, cb) {
         // Lazy load event emitter
-        if (!this.logEmitter) {
+        if (this.logEmitter === undefined) {
             this.logEmitter = new events_1.EventEmitter();
         }
         if (t === emitType.ALL) {
             for (var key in emitType) {
                 // TODO: Test case
-                this.logEmitter.on(key, cb);
+                this.logEmitter.on(key, function (m) { cb(m); });
             }
         }
         else {
-            this.logEmitter.on(t, cb);
+            this.logEmitter.on(t, function (m) { cb(m); });
         }
         this.emitLogIfLoggerAttached(t, "Logging " + t + " events to custom logger.");
         return this;
@@ -145,13 +148,13 @@ var SqlScript = /** @class */ (function () {
             throw Error('Please define a database to use!');
         }
         return p.then(function () {
-            return _this.isDatabaseExistent(_this.connection, _this.dbToUse.name)
+            return _this.isDatabaseExistent(_this.getConnectionPromise(), _this.dbToUse.name)
                 .then(function (dbExists) {
                 return dbExists;
             });
         }).then(function (dbExists) {
             if (dbExists) {
-                return _this.getDbSchemaVersion(_this.connection, _this.dbToUse.name)
+                return _this.getDbSchemaVersion(_this.getConnectionPromise(), _this.dbToUse.name)
                     .then(function (res) {
                     currentDbSchemaVersion = res;
                 });
@@ -165,7 +168,7 @@ var SqlScript = /** @class */ (function () {
                     _this.emitLogIfLoggerAttached(emitType.DEBUG, "Starting database migration from version\n                    '" + currentDbSchemaVersion + "' to version '" + _this.schemaVersion + "'.");
                     // TODO: Implement migration logic
                     // this.sqlStatements
-                    _this.connection.then(function (conn) {
+                    _this.getConnectionPromise().then(function (conn) {
                         _this.sqlStatements.forEach(function (e) {
                             p.then(function () {
                                 conn.query(e);

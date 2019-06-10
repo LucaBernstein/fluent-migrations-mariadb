@@ -8,10 +8,11 @@ export declare enum emitType {
     ALL = "all"
 }
 export declare class SqlScript {
-    connection: Promise<Connection>;
+    connection?: Promise<Connection>;
     schemaVersion: number;
     sqlStatements: string[];
     dbToUse?: Database;
+    conf: ConnectionConfig;
     logEmitter?: EventEmitter;
     constructor(conf: ConnectionConfig, schemaVersion: number);
     private getConnectionPromise;
@@ -31,7 +32,7 @@ export declare class SqlScript {
      * @param t minimum log level to listen to
      * @param cb callback function
      */
-    attachLogger(t: emitType, cb: (...args: any[]) => void): SqlScript;
+    attachLogger(t: emitType, cb: (m: any) => any): SqlScript;
     /**
      * Select the database to use in this script.
      * It is possible to create a new one if necessary.
