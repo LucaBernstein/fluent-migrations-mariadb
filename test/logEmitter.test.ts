@@ -7,7 +7,7 @@ class mockLogger {
     called: number = 0;
 
     log(...m: any[]): mockLogger {
-        console.log(m);
+        // console.log(m); // DEBUG output
         this.called++; // https://stackoverflow.com/a/20279485/11167453
         return this;
     }
@@ -51,7 +51,7 @@ describe('blunt eventhandler binding test', () => {
 
     it('should work', () => {
         e.on('hello', (m) => { LOGGER.log(m); });
-        e.on('again', (m) => { LOGGER.log(m); console.log(`Logger has been called alrady, but once again, with: ${m}`) });
+        e.on('again', (m) => { LOGGER.log(m); });
         e.emit('hello', 'THIS IS A TEST(1)');
         e.emit('again', 'THIS IS A TEST(2) AGAIN.');
         expect(LOGGER.called).to.be.eq(2);

@@ -1,4 +1,4 @@
-import { isNullOrUndefined, isNull } from 'util';
+import { isNullOrUndefined, isNull, isUndefined } from 'util';
 import { Connection, ConnectionConfig, createConnection, MariaDbError } from 'mariadb';
 import { EventEmitter } from 'events';
 
