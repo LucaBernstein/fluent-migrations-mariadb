@@ -13,16 +13,16 @@ export enum emitType {
 }
 
 export class SqlScript { // TODO: implements Promise<any>
-    connection?: Promise<Connection>;
+    private connection?: Promise<Connection>;
 
-    schemaVersion: number;
-    sqlStatements: string[] = [];
-    dbToUse?: Database;
+    private schemaVersion: number;
+    protected sqlStatements: string[] = [];
+    private dbToUse?: Database;
 
-    conf: ConnectionConfig;
+    private conf: ConnectionConfig;
 
     // TODO: Refactor event emitter to separate module and import here.
-    logEmitter?: EventEmitter;
+    private logEmitter?: EventEmitter;
 
     constructor(conf: ConnectionConfig, schemaVersion: number) {
         // Provide LOGGER callback to plug into emitter: EventEmitter
@@ -129,7 +129,7 @@ export class SqlScript { // TODO: implements Promise<any>
      * @param table
      */
     createTable(table: Table): SqlScript {
-        this.addRawSql(table.sqlify(this.dbToUse!.name));
+        this.addRawSql(table.sqlify(this.dbToUse!.getName()));
         return this;
     }
 
@@ -157,13 +157,13 @@ export class SqlScript { // TODO: implements Promise<any>
             throw Error('Please define a database to use!');
         }
         return p.then(() => {
-            return this.isDatabaseExistent(this.getConnectionPromise(), this.dbToUse!.name)
+            return this.isDatabaseExistent(this.getConnectionPromise(), this.dbToUse!.getName())
                 .then((dbExists) => {
                     return dbExists;
                 });
         }).then((dbExists) => {
             if (dbExists) {
-                return this.getDbSchemaVersion(this.getConnectionPromise(), this.dbToUse!.name)
+                return this.getDbSchemaVersion(this.getConnectionPromise(), this.dbToUse!.getName())
                     .then((res) => {
                         currentDbSchemaVersion = res;
                     });
@@ -191,13 +191,17 @@ export class SqlScript { // TODO: implements Promise<any>
             });
         });
     }
+
+    getRawSqlStatements(): string[] {
+        return this.sqlStatements;
+    }
 }
 
 export class Table {
-    name: string;
-    columns: ITableColumn<any>[] = [];
-    collation: string = 'utf8_general_ci';
-    primary?: string;
+    private name: string;
+    private columns: ITableColumn<any>[] = [];
+    private collation: string = 'utf8_general_ci';
+    private primary?: string;
 
     constructor(name: string) {
         this.name = name;
@@ -234,14 +238,7 @@ export class Table {
 }
 
 export interface ITableColumn<T> {
-    name: string;
-    type?: string;
-    length?: number;
-    defaultValue?: T | null;
-    nullAllowed: boolean;
-
     // TODO: Make primary selection on column directly
-
     setDefaultValue: (t: T) => TableColumn<T>;
     sqlify: () => string;
     notNull: () => TableColumn<T>;
@@ -249,11 +246,11 @@ export interface ITableColumn<T> {
 }
 
 export abstract class TableColumn<T> implements ITableColumn<T> {
-    name: string;
-    type?: string;
-    length?: number;
-    defaultValue?: T | null;
-    nullAllowed: boolean = false;
+    protected name: string;
+    protected type?: string;
+    protected length?: number;
+    protected defaultValue?: T | null;
+    protected nullAllowed: boolean = false;
 
     constructor(name: string) {
         this.name = name;
@@ -292,8 +289,9 @@ export abstract class TableColumn<T> implements ITableColumn<T> {
 }
 
 export class TableColumnCustom extends TableColumn<any> {
-    // TODO: Remove, was implemented to save time in the beginning
-    sqlPart: string;
+    // TODO: Remove, as it was implemented to save time in the beginning
+    private sqlPart: string;
+
     constructor(name: string, sqlPart: string) {
         super(name);
         this.sqlPart = sqlPart;
@@ -305,9 +303,9 @@ export class TableColumnCustom extends TableColumn<any> {
 }
 
 export class TableColumnChar extends TableColumn<string> {
-    type: string = 'CHAR';
-    length: number;
-    defaultValue?: string;
+    protected type: string = 'CHAR';
+    protected length: number;
+    protected defaultValue?: string;
 
     constructor(name: string, length: number) {
         super(name);
@@ -316,8 +314,8 @@ export class TableColumnChar extends TableColumn<string> {
 }
 
 export class Database {
-    name: string;
-    collation: string = 'utf8_general_ci';
+    private name: string;
+    private collation: string = 'utf8_general_ci';
 
     constructor(name: string) {
         this.name = name;
@@ -331,5 +329,9 @@ export class Database {
 
     sqlify(): string {
         return `CREATE DATABASE IF NOT EXISTS \`${this.name}\` /*!40100 COLLATE '${this.collation}' */;`;
+    }
+
+    getName(): string {
+        return this.name;
     }
 }
