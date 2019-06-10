@@ -17,7 +17,7 @@ const conf: ConnectionConfig;
 const VERSION: number = 0;
 
 return new SqlScript(conf, VERSION)
-    .attachLogger(emitType.ALL, LOGGER.debug) // Plug in your own logger callback
+    .attachLogger(emitType.ALL, (m) => LOGGER.debug(m)) // Plug in your own logger callback
     .useDatabase(
         new Database('sample-database'),
     )
