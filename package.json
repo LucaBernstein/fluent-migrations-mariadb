@@ -1,6 +1,6 @@
 {
     "name": "fluent-migrations-mariadb",
-    "version": "0.5.2",
+    "version": "0.5.3",
     "description": "A simple and chained MariaDB database installation and migrations API.",
     "main": "dist/migrations-dsl.js",
     "types": "dist/migrations-dsl.d.ts",
