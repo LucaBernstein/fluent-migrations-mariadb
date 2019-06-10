@@ -34,7 +34,7 @@
     },
     "repository": {
         "type": "git",
-        "url": "https://gitlab.com/LucaBernstein/migrations-fluent-mariadb"
+        "url": "https://gitlab.com/LucaBernstein/fluent-migrations-mariadb"
     },
     "keywords": [
         "mariadb",
