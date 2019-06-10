@@ -44,7 +44,7 @@ export class SqlScript { // TODO: implements Promise<any>
      * @see SqlScript#attachLogger
      */
     private emitLogIfLoggerAttached(t: emitType, m: string): SqlScript {
-        if (this.logEmitter) {
+        if (this.logEmitter !== undefined) {
             this.logEmitter.emit(t, m);
         }
         return this;
@@ -101,10 +101,9 @@ export class SqlScript { // TODO: implements Promise<any>
             this.logEmitter = new EventEmitter();
         }
         if (t === emitType.ALL) {
-            for (const key in emitType) {
-                // TODO: Test case
-                this.logEmitter.on(key, (m) => { cb(m); });
-            }
+            Object.values(emitType).forEach((element) => {
+                this.logEmitter!.on(element, (m) => { cb(m); });
+            });
         } else {
             this.logEmitter.on(t, (m) => { cb(m); });
         }
@@ -120,10 +119,7 @@ export class SqlScript { // TODO: implements Promise<any>
      */
     useDatabase(db: Database): SqlScript {
         this.dbToUse = db;
-        if (!db.alreadyExists) {
-            // Create db only if not said to already exist
-            this.addRawSql(db.sqlify());
-        }
+        this.addRawSql(db.sqlify());
         return this;
     }
 
@@ -146,7 +142,6 @@ export class SqlScript { // TODO: implements Promise<any>
         this.emitLogIfLoggerAttached(emitType.TRACE, `Adding SQL statement to queue: ${sql}`);
         this.sqlStatements.push(sql);
         return this;
-
     }
 
     /**
@@ -176,11 +171,13 @@ export class SqlScript { // TODO: implements Promise<any>
         }).then(() => {
             return new Promise(() => {
                 if (this.schemaVersion >= currentDbSchemaVersion) {
-                    this.emitLogIfLoggerAttached(emitType.DEBUG, `Not executing migration script to '${this.schemaVersion}',
-                    as database version is already equal or higher ('${currentDbSchemaVersion}').`);
+                    /* tslint:disable:max-line-length  */
+                    this.emitLogIfLoggerAttached(emitType.DEBUG, `Not executing migration script to '${this.schemaVersion}', as database version is already equal or higher ('${currentDbSchemaVersion}').`);
+                    /* tslint:enable */
                 } else {
-                    this.emitLogIfLoggerAttached(emitType.DEBUG, `Starting database migration from version
-                    '${currentDbSchemaVersion}' to version '${this.schemaVersion}'.`);
+                    /* tslint:disable:max-line-length  */
+                    this.emitLogIfLoggerAttached(emitType.DEBUG, `Starting database migration from version '${currentDbSchemaVersion}' to version '${this.schemaVersion}'.`);
+                    /* tslint:enable */
                     // TODO: Implement migration logic
                     // this.sqlStatements
                     this.getConnectionPromise().then((conn) => {
@@ -242,6 +239,8 @@ export interface ITableColumn<T> {
     length?: number;
     defaultValue?: T | null;
     nullAllowed: boolean;
+
+    // TODO: Make primary selection on column directly
 
     setDefaultValue: (t: T) => TableColumn<T>;
     sqlify: () => string;
@@ -318,17 +317,10 @@ export class TableColumnChar extends TableColumn<string> {
 
 export class Database {
     name: string;
-    alreadyExists: boolean = false;
     collation: string = 'utf8_general_ci';
 
     constructor(name: string) {
         this.name = name;
-        return this;
-    }
-
-    fromExisting(alreadyExists: boolean): Database { // TODO: Maybe remove, as no use case
-        this.alreadyExists = alreadyExists;
-        // TODO: Check if database already exists with properties we like to have
         return this;
     }
 

@@ -21,12 +21,22 @@ describe('test the mock logger', () => {
 })
 
 describe('Migrations DSL', () => {
+    let LOGGER: mockLogger;
+
+    beforeEach(() => {
+        LOGGER = new mockLogger();
+    });
+
     it('attachLogger', () => {
-        const LOGGER = new mockLogger();
-        const calledBefore = LOGGER.called;
         new SqlScript({}, 0)
             .attachLogger(emitType.DEBUG, (m) => LOGGER.log(m));
-        expect(LOGGER.called).to.be.greaterThan(calledBefore);
+        expect(LOGGER.called).to.be.greaterThan(0);
+    });
+
+    it('should also work for ALL type', () => {
+        new SqlScript({}, 0)
+            .attachLogger(emitType.ALL, (m) => LOGGER.log(m));
+        expect(LOGGER.called).to.be.greaterThan(0);
     });
 })
 
@@ -35,7 +45,6 @@ describe('blunt eventhandler binding test', () => {
     let e: EventEmitter;
 
     beforeEach(() => {
-        // runs before each test in this block
         LOGGER = new mockLogger();
         e = new EventEmitter();
     });
