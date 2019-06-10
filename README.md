@@ -1,5 +1,7 @@
 # Migrations Fluent MariaDB
 
+[![npm version](https://badge.fury.io/js/fluent-migrations-mariadb.svg)](https://badge.fury.io/js/fluent-migrations-mariadb)
+
 A simple and chained MariaDB database installation and migrations API.
 
 ## Usage
